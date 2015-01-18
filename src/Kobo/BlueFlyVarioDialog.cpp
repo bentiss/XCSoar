@@ -75,7 +75,29 @@ class MyHandler final : public DataHandler {
 public:
   virtual void DataReceived(const void *data, size_t length) {
     const char *cdata = (const char *)data;
-    printf("%s\n", cdata);
+    unsigned first = 0;
+
+    for (unsigned i = 0; i < length ; i++) {
+      if (cdata[i] == '\n') {
+        strncat(buffer, &cdata[first], i - first);
+        ProcessLine(buffer);
+        strcpy(buffer, "");
+        first = i + 1;
+      }
+    }
+    if (first < length) {
+      strncat(buffer, &cdata[first], length - first);
+    }
+  }
+
+private:
+  char buffer[512] = "";
+
+  void ProcessLine(const char *line) {
+    if (line[0] == '$')
+      return;
+
+    printf("%s\n", line);
   }
 };
 
