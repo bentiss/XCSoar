@@ -68,13 +68,23 @@ enum WidgetType {
   Boolean,
 };
 
+struct BooleanSpec {
+};
+
+struct EnumSpec {
+  const StaticEnumChoice *list;
+};
+
 struct BlueFlyVarioSettingsDeclaration {
   enum WidgetType type;
   const TCHAR *cmd;
   const TCHAR *label;
   const TCHAR *help;
-  const StaticEnumChoice *list;
   unsigned *value;
+  union spec {
+    struct EnumSpec e;
+    struct BooleanSpec b;
+  } extra;
 };
 
 struct BlueFlyVarioSettings {
@@ -202,29 +212,29 @@ private:
       .label = _("Volume"),
       .help = _("The volume of beeps \n"
                 "-> 0.1 is only about 1/2 as loud as 1.0."),
-      .list = volume_values,
       .value = &settings.volume,
+      .extra = {.e = {volume_values}, },
     },
     { .type = Boolean,
       .cmd = "BAC",
-      .label = _("Use Audio When Connected"),
+      .label = _("Beep on Connect"),
       .help = _("Check to enable hardware audio when connected."),
-      .list = nullptr,
       .value = &settings.audio_when_connected,
+      .extra = {.b = {}, },
     },
     { .type = Boolean,
       .cmd = "BAD",
-      .label = _("Use Audio When Disconnected"),
+      .label = _("Beep on Disconnect"),
       .help = _("Check to enable hardware audio when disconnected."),
-      .list = nullptr,
       .value = &settings.audio_when_disconnected,
+      .extra = {.b = {}, },
     },
     { .type = Enum,
       .cmd = "BOM",
       .label = _("outputMode"),
       .help = _("The output mode."),
-      .list = output_mode_values,
       .value = &settings.outputMode,
+      .extra = {.e = {output_mode_values}, },
     },
   };
 };
@@ -302,7 +312,7 @@ BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
   for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
     switch (decl[param].type) {
     case Enum:
-      AddEnum(decl[param].label, decl[param].help, decl[param].list,
+      AddEnum(decl[param].label, decl[param].help, decl[param].extra.e.list,
               *decl[param].value);
       break;
     case Boolean:
