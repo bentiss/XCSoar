@@ -37,6 +37,7 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Dialogs/SimulatorPromptWindow.cpp \
 	$(SRC)/Form/DataField/Base.cpp \
 	$(SRC)/Form/DataField/Boolean.cpp \
+	$(SRC)/Form/DataField/Float.cpp \
 	$(SRC)/Form/DataField/Number.cpp \
 	$(SRC)/Form/DataField/Integer.cpp \
 	$(SRC)/Form/DataField/ComboList.cpp \

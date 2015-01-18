@@ -36,6 +36,7 @@ Copyright_License {
 #include "Operation/ConsoleOperationEnvironment.hpp"
 #include "IO/Async/GlobalIOThread.hpp"
 #include "IO/DataHandler.hpp"
+#include "Math/fixed.hpp"
 #include "Thread/Trigger.hpp"
 #include <vector>
 #include <sstream>
@@ -66,6 +67,7 @@ static constexpr StaticEnumChoice output_mode_values[] = {
 enum WidgetType {
   Enum,
   Boolean,
+  Float,
 };
 
 struct BooleanSpec {
@@ -73,6 +75,16 @@ struct BooleanSpec {
 
 struct EnumSpec {
   const StaticEnumChoice *list;
+};
+
+struct FloatSpec {
+  const fixed multipilier;
+  const TCHAR *display_format;
+  const TCHAR *edit_format;
+  fixed min_value;
+  fixed max_value;
+  fixed step;
+  bool fine;
 };
 
 struct BlueFlyVarioSettingsDeclaration {
@@ -84,6 +96,7 @@ struct BlueFlyVarioSettingsDeclaration {
   union spec {
     struct EnumSpec e;
     struct BooleanSpec b;
+    struct FloatSpec f;
   } extra;
 };
 
@@ -92,7 +105,12 @@ struct BlueFlyVarioSettings {
   unsigned volume;
   unsigned audio_when_connected;
   unsigned audio_when_disconnected;
+  unsigned lift_threshold;
+  unsigned lift_off_threshold;
+  unsigned sink_threshold;
+  unsigned sink_off_threshold;
   unsigned outputMode;
+  unsigned lift_led;
 };
 
 static char settings_version[512] = "";
@@ -206,7 +224,7 @@ private:
   struct BlueFlyVarioSettings settings;
   std::vector<std::string> keys;
 
-  const struct BlueFlyVarioSettingsDeclaration decl[4] = {
+  const struct BlueFlyVarioSettingsDeclaration decl[9] = {
     { .type = Enum,
       .cmd = "BVL",
       .label = _("Volume"),
@@ -229,12 +247,79 @@ private:
       .value = &settings.audio_when_disconnected,
       .extra = {.b = {}, },
     },
+    { .type = Float,
+      .cmd = "BFL",
+      .label = _("Lift Threshold"),
+      .help = _("The value in m/s of lift when the audio beeping will start."),
+      .value = &settings.lift_threshold,
+      .extra = {.f = { .multipilier = 100.0,
+                       .display_format = _T("%.2f m/s"),
+                       .edit_format = _T("%.2f m/s"),
+                       .min_value = 0,
+                       .max_value = 10.0,
+                       .step = 0.05,
+                       .fine = false,
+                     }
+               },
+    },
+    { .type = Float,
+      .cmd = "BOL",
+      .label = _("Lift Off Threshold"),
+      .help = _("The value in m/s of lift when the audio beeping will stop."),
+      .value = &settings.lift_off_threshold,
+      .extra = {.f = { .multipilier = 100.0,
+                       .display_format = _T("%.2f m/s"),
+                       .edit_format = _T("%.2f m/s"),
+                       .min_value = 0,
+                       .max_value = 10.0,
+                       .step = 0.05,
+                       .fine = false,
+                     }
+               },
+    },
+    { .type = Float,
+      .cmd = "BFS",
+      .label = _("Sink Threshold"),
+      .help = _("The value in m/s of sink when the audio beeping will start."),
+      .value = &settings.sink_threshold,
+      .extra = {.f = { .multipilier = 100.0,
+                       .display_format = _T("%.2f m/s"),
+                       .edit_format = _T("%.2f m/s"),
+                       .min_value = 0,
+                       .max_value = 10.0,
+                       .step = 0.05,
+                       .fine = false,
+                     }
+               },
+    },
+    { .type = Float,
+      .cmd = "BOS",
+      .label = _("Sink Off Threshold"),
+      .help = _("The value in m/s of sink when the audio beeping will stop."),
+      .value = &settings.sink_off_threshold,
+      .extra = {.f = { .multipilier = 100.0,
+                       .display_format = _T("%.2f m/s"),
+                       .edit_format = _T("%.2f m/s"),
+                       .min_value = 0,
+                       .max_value = 10.0,
+                       .step = 0.05,
+                       .fine = false,
+                     }
+               },
+    },
     { .type = Enum,
       .cmd = "BOM",
       .label = _("outputMode"),
       .help = _("The output mode."),
       .value = &settings.outputMode,
       .extra = {.e = {output_mode_values}, },
+    },
+    { .type = Boolean,
+      .cmd = "BLD",
+      .label = _("Green LED"),
+      .help = _("Check to turn on the green LED with each lift beep."),
+      .value = &settings.lift_led,
+      .extra = {.b = {}, },
     },
   };
 };
@@ -318,6 +403,16 @@ BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
     case Boolean:
       AddBoolean(decl[param].label, decl[param].help, *decl[param].value);
       break;
+    case Float:
+      AddFloat(decl[param].label, decl[param].help,
+               decl[param].extra.f.display_format,
+               decl[param].extra.f.edit_format,
+               decl[param].extra.f.min_value,
+               decl[param].extra.f.max_value,
+               decl[param].extra.f.step,
+               decl[param].extra.f.fine,
+               *decl[param].value / decl[param].extra.f.multipilier);
+      break;
     }
   }
 }
@@ -380,6 +475,14 @@ BlueFlyVarioDialog::Save(bool &_changed)
     case Boolean:
       if (SaveValue(param, *decl[param].value)) {
         SendCommand(decl[param].cmd, *decl[param].value);
+        changed = true;
+      }
+      break;
+    case Float:
+      fixed value = *decl[param].value / decl[param].extra.f.multipilier;
+      if (SaveValue(param, value)) {
+        value *= decl[param].extra.f.multipilier;
+        SendCommand(decl[param].cmd, (unsigned)value);
         changed = true;
       }
       break;
