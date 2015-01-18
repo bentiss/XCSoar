@@ -110,6 +110,13 @@ class BlueFlyVarioDialog final
 public:
   BlueFlyVarioDialog(const DialogLook &look):RowFormWidget(look) {
     OpenSerial("/dev/ttymxc0", 57600);
+    if (!port) {
+      ShowMessageBox(_T("Unable to open the serial port..."), _("Error"),
+                     MB_OK);
+      return;
+    }
+
+    connected = true;
   }
   ~BlueFlyVarioDialog() {
     if (port) {
@@ -117,6 +124,8 @@ public:
       DeinitialiseIOThread();
     }
   }
+
+  bool IsReady() { return connected; }
 
 private:
  /* virtual methods from class Widget */
@@ -132,6 +141,7 @@ private:
   Port *port = nullptr;
   unsigned int volume = 0;
   unsigned int output_mode = 0;
+  bool connected = false;
 };
 
 void
@@ -191,10 +201,6 @@ void
 BlueFlyVarioDialog::SendCommand(const char *cmd, int value)
 {
   std::string command;
-  if (!port) {
-    MyLog("Port not opened, sth went wrong");
-    return;
-  }
 
   command = "$" + std::string(cmd) + " " + std::to_string(value) + "*";
   MyLog(command);
@@ -226,6 +232,10 @@ ShowBlueFlyVarioDialog()
 {
   const DialogLook &look = UIGlobals::GetDialogLook();
   BlueFlyVarioDialog widget(look);
+  if (!widget.IsReady()) {
+    MyLog("Leaving sooner");
+    return;
+  }
   WidgetDialog dialog(look);
   dialog.CreateFull(UIGlobals::GetMainWindow(), "System", &widget);
   dialog.AddButton(_("Close"), mrOK);
