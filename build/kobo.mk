@@ -1,6 +1,8 @@
 KOBO_MENU_SOURCES = \
 	$(SRC)/Version.cpp \
 	$(SRC)/Asset.cpp \
+	$(SRC)/LocalPath.cpp \
+	$(SRC)/LogFile.cpp \
 	$(SRC)/Formatter/HexColor.cpp \
 	$(SRC)/Hardware/CPU.cpp \
 	$(SRC)/Hardware/DisplayDPI.cpp \
@@ -11,6 +13,15 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Look/DialogLook.cpp \
 	$(SRC)/Look/ButtonLook.cpp \
 	$(SRC)/Gauge/LogoView.cpp \
+	$(SRC)/Device/Config.cpp \
+	$(SRC)/Device/Port/Port.cpp \
+	$(SRC)/Device/Port/BufferedPort.cpp \
+	$(SRC)/Device/Port/ConfiguredPort.cpp \
+	$(SRC)/Device/Port/K6BtPort.cpp \
+	$(SRC)/Device/Port/SocketPort.cpp \
+	$(SRC)/Device/Port/TCPPort.cpp \
+	$(SRC)/Device/Port/TCPClientPort.cpp \
+	$(SRC)/Device/Port/TTYPort.cpp \
 	$(SRC)/Dialogs/DataField.cpp \
 	$(SRC)/Dialogs/ComboPicker.cpp \
 	$(SRC)/Dialogs/TimeEntry.cpp \
@@ -31,6 +42,10 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Form/DataField/Enum.cpp \
 	$(SRC)/Form/DataField/RoughTime.cpp \
 	$(SRC)/Form/DataField/GeoPoint.cpp \
+	$(SRC)/Formatter/TimeFormatter.cpp \
+	$(SRC)/Operation/Operation.cpp \
+	$(SRC)/Operation/ConsoleOperationEnvironment.cpp \
+	$(SRC)/OS/LogError.cpp \
 	$(SRC)/Time/BrokenDateTime.cpp \
 	$(SRC)/Units/Descriptor.cpp \
 	$(TEST_SRC_DIR)/Fonts.cpp \
