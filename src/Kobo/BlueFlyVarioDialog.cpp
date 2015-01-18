@@ -63,7 +63,13 @@ static constexpr StaticEnumChoice output_mode_values[] = {
   { 0 }
 };
 
+enum WidgetType {
+  Enum,
+  Boolean,
+};
+
 struct BlueFlyVarioSettingsDeclaration {
+  enum WidgetType type;
   const TCHAR *cmd;
   const TCHAR *label;
   const TCHAR *help;
@@ -74,6 +80,8 @@ struct BlueFlyVarioSettingsDeclaration {
 struct BlueFlyVarioSettings {
   unsigned version;
   unsigned volume;
+  unsigned audio_when_connected;
+  unsigned audio_when_disconnected;
   unsigned outputMode;
 };
 
@@ -188,15 +196,31 @@ private:
   struct BlueFlyVarioSettings settings;
   std::vector<std::string> keys;
 
-  const struct BlueFlyVarioSettingsDeclaration decl[2] = {
-    { .cmd = "BVL",
+  const struct BlueFlyVarioSettingsDeclaration decl[4] = {
+    { .type = Enum,
+      .cmd = "BVL",
       .label = _("Volume"),
       .help = _("The volume of beeps \n"
                 "-> 0.1 is only about 1/2 as loud as 1.0."),
       .list = volume_values,
       .value = &settings.volume,
     },
-    { .cmd = "BOM",
+    { .type = Boolean,
+      .cmd = "BAC",
+      .label = _("Use Audio When Connected"),
+      .help = _("Check to enable hardware audio when connected."),
+      .list = nullptr,
+      .value = &settings.audio_when_connected,
+    },
+    { .type = Boolean,
+      .cmd = "BAD",
+      .label = _("Use Audio When Disconnected"),
+      .help = _("Check to enable hardware audio when disconnected."),
+      .list = nullptr,
+      .value = &settings.audio_when_disconnected,
+    },
+    { .type = Enum,
+      .cmd = "BOM",
       .label = _("outputMode"),
       .help = _("The output mode."),
       .list = output_mode_values,
@@ -275,9 +299,17 @@ BlueFlyVarioDialog::ParseCurrentValues(const char *line)
 void
 BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
 {
-  for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++)
-    AddEnum(decl[param].label, decl[param].help, decl[param].list,
-            *decl[param].value);
+  for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
+    switch (decl[param].type) {
+    case Enum:
+      AddEnum(decl[param].label, decl[param].help, decl[param].list,
+              *decl[param].value);
+      break;
+    case Boolean:
+      AddBoolean(decl[param].label, decl[param].help, *decl[param].value);
+      break;
+    }
+  }
 }
 
 void
@@ -328,9 +360,19 @@ BlueFlyVarioDialog::Save(bool &_changed)
   bool changed = false;
 
   for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
-    if (SaveValueEnum(param, *decl[param].value)) {
-      SendCommand(decl[param].cmd, *decl[param].value);
-      changed = true;
+    switch (decl[param].type) {
+    case Enum:
+      if (SaveValueEnum(param, *decl[param].value)) {
+        SendCommand(decl[param].cmd, *decl[param].value);
+        changed = true;
+      }
+      break;
+    case Boolean:
+      if (SaveValue(param, *decl[param].value)) {
+        SendCommand(decl[param].cmd, *decl[param].value);
+        changed = true;
+      }
+      break;
     }
   }
 
