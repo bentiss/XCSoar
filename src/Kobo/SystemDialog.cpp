@@ -30,12 +30,14 @@ Copyright_License {
 #include "Form/ActionListener.hpp"
 #include "Widget/RowFormWidget.hpp"
 #include "System.hpp"
+#include "BlueFlyVarioDialog.hpp"
 
 class SystemWidget final
   : public RowFormWidget, ActionListener {
   enum Buttons {
     REBOOT,
     SWITCH_KERNEL,
+    BLUEFLYVARIO,
     USB_STORAGE,
   };
 
@@ -60,6 +62,7 @@ SystemWidget::Prepare(ContainerWindow &parent, const PixelRect &rc)
   AddButton("Reboot", *this, REBOOT);
   AddButton(IsKoboOTGKernel() ? "Disable USB-OTG" : "Enable USB-OTG",
             *this, SWITCH_KERNEL);
+  AddButton("BlueFlyVario Settings", *this, BLUEFLYVARIO);
 
   AddButton("Export USB storage", *this, USB_STORAGE);
   SetRowEnabled(USB_STORAGE, !IsKoboOTGKernel());
@@ -119,6 +122,10 @@ SystemWidget::OnAction(int id)
 
   case SWITCH_KERNEL:
     SwitchKernel();
+    break;
+
+  case BLUEFLYVARIO:
+    ShowBlueFlyVarioDialog();
     break;
 
   case USB_STORAGE:

@@ -11,6 +11,11 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Look/DialogLook.cpp \
 	$(SRC)/Look/ButtonLook.cpp \
 	$(SRC)/Gauge/LogoView.cpp \
+	$(SRC)/Dialogs/DataField.cpp \
+	$(SRC)/Dialogs/ComboPicker.cpp \
+	$(SRC)/Dialogs/TimeEntry.cpp \
+	$(SRC)/Dialogs/GeoPointEntry.cpp \
+	$(SRC)/Dialogs/ListPicker.cpp \
 	$(SRC)/Dialogs/DialogSettings.cpp \
 	$(SRC)/Dialogs/WidgetDialog.cpp \
 	$(SRC)/Dialogs/HelpDialog.cpp \
@@ -19,6 +24,15 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Dialogs/KnobTextEntry.cpp \
 	$(SRC)/Dialogs/TouchTextEntry.cpp \
 	$(SRC)/Dialogs/SimulatorPromptWindow.cpp \
+	$(SRC)/Form/DataField/Base.cpp \
+	$(SRC)/Form/DataField/Number.cpp \
+	$(SRC)/Form/DataField/Integer.cpp \
+	$(SRC)/Form/DataField/ComboList.cpp \
+	$(SRC)/Form/DataField/Enum.cpp \
+	$(SRC)/Form/DataField/RoughTime.cpp \
+	$(SRC)/Form/DataField/GeoPoint.cpp \
+	$(SRC)/Time/BrokenDateTime.cpp \
+	$(SRC)/Units/Descriptor.cpp \
 	$(TEST_SRC_DIR)/Fonts.cpp \
 	$(TEST_SRC_DIR)/FakeLanguage.cpp \
 	$(SRC)/Kobo/WPASupplicant.cpp \
@@ -27,6 +41,7 @@ KOBO_MENU_SOURCES = \
 	$(SRC)/Kobo/NetworkDialog.cpp \
 	$(SRC)/Kobo/SystemDialog.cpp \
 	$(SRC)/Kobo/ToolsDialog.cpp \
+	$(SRC)/Kobo/BlueFlyVarioDialog.cpp \
 	$(SRC)/Kobo/WPASupplicant.cpp \
 	$(SRC)/Kobo/WifiDialog.cpp \
 	$(SRC)/Kobo/FakeSymbols.cpp \

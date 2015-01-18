@@ -21,7 +21,10 @@ Copyright_License {
 }
 */
 
-#include "Form/DataField/Base.hpp"
-#include "Dialogs/DataField.hpp"
+#ifndef BLUEFLYVARIO_DIALOG_HPP
+#define BLUEFLYVARIO_DIALOG_HPP
 
+void
+ShowBlueFlyVarioDialog();
 
+#endif /* BLUEFLYVARIO_DIALOG_HPP */
