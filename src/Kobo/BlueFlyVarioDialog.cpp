@@ -40,6 +40,8 @@ Copyright_License {
 #include <vector>
 #include <sstream>
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
+
 static constexpr StaticEnumChoice volume_values[] = {
   { 0, N_("0 - Muted"), NULL },
   { 1, N_("0.001"), NULL },
@@ -59,6 +61,14 @@ static constexpr StaticEnumChoice output_mode_values[] = {
   { 2, N_("LX"), NULL },
   { 3, N_("FlyNet"), NULL },
   { 0 }
+};
+
+struct BlueFlyVarioSettingsDeclaration {
+  const TCHAR *cmd;
+  const TCHAR *label;
+  const TCHAR *help;
+  const StaticEnumChoice *list;
+  unsigned *value;
 };
 
 struct BlueFlyVarioSettings {
@@ -146,9 +156,6 @@ private:
 
 class BlueFlyVarioDialog final
   : public RowFormWidget {
-  enum ControlIndex {
-    Volume,
-  };
 
 public:
   BlueFlyVarioDialog(const DialogLook &look):RowFormWidget(look) {
@@ -195,6 +202,22 @@ private:
   bool connected = false;
   struct BlueFlyVarioSettings settings;
   std::vector<std::string> keys;
+
+  const struct BlueFlyVarioSettingsDeclaration decl[2] = {
+    { .cmd = "BVL",
+      .label = _("Volume"),
+      .help = _("The volume of beeps \n"
+                "-> 0.1 is only about 1/2 as loud as 1.0."),
+      .list = volume_values,
+      .value = &settings.volume,
+    },
+    { .cmd = "BOM",
+      .label = _("outputMode"),
+      .help = _("The output mode."),
+      .list = output_mode_values,
+      .value = &settings.outputMode,
+    },
+  };
 };
 
 bool
@@ -256,13 +279,11 @@ BlueFlyVarioDialog::ParseCurrentValues(const char *line)
   for (unsigned  i = 1; i < keys.size(); i++) {
     int value = std::stoi(tokens[i + 1]);
     MyLog(keys[i] + " -> " + tokens[i + 1]);
-    if (keys[i] == "BVL") {
-      settings.volume = value;
-      continue;
-    }
-    if (keys[i] == "BOM") {
-      settings.outputMode = value;
-      continue;
+    for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
+      if (keys[i] == decl[param].cmd) {
+        *decl[param].value = value;
+        break;
+      }
     }
   }
 
@@ -272,12 +293,9 @@ BlueFlyVarioDialog::ParseCurrentValues(const char *line)
 void
 BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
 {
-  AddEnum(_("Volume"),
-          _("The volume of beeps -> 0.1 is only about 1/2 as loud as 1.0."),
-          volume_values, settings.volume);
-  AddEnum(_("outputMode"),
-          _("The output mode."),
-          output_mode_values, settings.outputMode);
+  for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++)
+    AddEnum(decl[param].label, decl[param].help, decl[param].list,
+            *decl[param].value);
 }
 
 void
@@ -340,9 +358,12 @@ BlueFlyVarioDialog::Save(bool &_changed)
   MyLog("Save()");
 
   MyLog("vol:" + std::to_string(settings.volume));
-  if (SaveValueEnum(Volume, settings.volume)) {
-    SendCommand("BVL", settings.volume);
-    changed = true;
+
+  for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
+    if (SaveValueEnum(param, *decl[param].value)) {
+      SendCommand(decl[param].cmd, *decl[param].value);
+      changed = true;
+    }
   }
   MyLog("vol:" + std::to_string(settings.volume));
 
