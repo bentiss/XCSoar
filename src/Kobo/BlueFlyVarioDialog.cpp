@@ -82,19 +82,6 @@ static char settings_keys[512] = "";
 static char settings_values[512] = "";
 static Trigger triggerSettings;
 
-static void
-MyLog(std::string data)
-{
-  printf("%s\n", data.c_str());
-}
-
-static void
-MyLog(const char *data)
-{
-  std::string sdata = data;
-  MyLog(sdata);
-}
-
 static bool
 line_startswith(const char *line, const char *prefix)
 {
@@ -168,12 +155,10 @@ public:
 
     connected = ReadCurrentConfig();
 
-    if (!connected) {
-      MyLog("Unable to read parameters, is the BlueFlyVario connected?");
+    if (!connected)
       ShowMessageBox(_T("Unable to read parameters, "
                         "is the BlueFlyVario connected?"), _("Error"),
                     MB_OK);
-    }
   }
   ~BlueFlyVarioDialog() {
     if (port) {
@@ -243,7 +228,6 @@ BlueFlyVarioDialog::ParseCurrentVersion(const char *line)
     return;
 
   settings.version = atoi(&line[4]);
-  MyLog("BlueFlyVario connected, version " + std::to_string(settings.version));
 }
 
 void
@@ -275,10 +259,8 @@ BlueFlyVarioDialog::ParseCurrentValues(const char *line)
   if (keys.size() != tokens.size() - 1)
     return false;
 
-  MyLog(line);
   for (unsigned  i = 1; i < keys.size(); i++) {
     int value = std::stoi(tokens[i + 1]);
-    MyLog(keys[i] + " -> " + tokens[i + 1]);
     for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
       if (keys[i] == decl[param].cmd) {
         *decl[param].value = value;
@@ -304,9 +286,6 @@ BlueFlyVarioDialog::OpenSerial(const TCHAR *path, unsigned baud_rate)
   if (port)
     return;
 
-  MyLog("Attempting to open serial port");
-  MyLog(path);
-
   DeviceConfig config;
   config.Clear();
 
@@ -317,27 +296,21 @@ BlueFlyVarioDialog::OpenSerial(const TCHAR *path, unsigned baud_rate)
   InitialiseIOThread();
 
   port = OpenPort(config, nullptr, handler);
-  if (port == NULL) {
-    MyLog("Failed to open COM port");
+  if (port == NULL)
     return;
-  }
 
   ConsoleOperationEnvironment env;
 
   if (!port->WaitConnected(env)) {
     delete port;
     DeinitialiseIOThread();
-    MyLog("Failed to connect the port");
     return;
   }
 
   if (!port->StartRxThread()) {
     delete port;
-    MyLog("Failed to start the port thread");
     return;
   }
-
-  MyLog("Port opened");
 }
 
 void
@@ -346,7 +319,6 @@ BlueFlyVarioDialog::SendCommand(const char *cmd, int value)
   std::string command;
 
   command = "$" + std::string(cmd) + " " + std::to_string(value) + "*";
-  MyLog(command);
   port->Write(command.c_str());
 }
 
@@ -355,17 +327,12 @@ BlueFlyVarioDialog::Save(bool &_changed)
 {
   bool changed = false;
 
-  MyLog("Save()");
-
-  MyLog("vol:" + std::to_string(settings.volume));
-
   for (unsigned param = 0 ; param < ARRAY_SIZE(decl); param++) {
     if (SaveValueEnum(param, *decl[param].value)) {
       SendCommand(decl[param].cmd, *decl[param].value);
       changed = true;
     }
   }
-  MyLog("vol:" + std::to_string(settings.volume));
 
   _changed |= changed;
 
@@ -377,10 +344,9 @@ ShowBlueFlyVarioDialog()
 {
   const DialogLook &look = UIGlobals::GetDialogLook();
   BlueFlyVarioDialog widget(look);
-  if (!widget.IsReady()) {
-    MyLog("Leaving sooner");
+  if (!widget.IsReady())
     return;
-  }
+
   WidgetDialog dialog(look);
   dialog.CreateFull(UIGlobals::GetMainWindow(), "System", &widget);
   dialog.AddButton(_("Close"), mrOK);
