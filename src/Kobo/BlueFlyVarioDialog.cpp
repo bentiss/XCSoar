@@ -58,6 +58,12 @@ static constexpr StaticEnumChoice output_mode_values[] = {
   { 0 }
 };
 
+struct BlueFlyVarioSettings {
+  unsigned version;
+  unsigned volume;
+  unsigned outputMode;
+};
+
 static void
 MyLog(std::string data)
 {
@@ -139,9 +145,8 @@ private:
 
   MyHandler handler;
   Port *port = nullptr;
-  unsigned int volume = 0;
-  unsigned int output_mode = 0;
   bool connected = false;
+  struct BlueFlyVarioSettings settings;
 };
 
 void
@@ -149,10 +154,10 @@ BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
 {
   AddEnum(_("Volume"),
           _("The volume of beeps -> 0.1 is only about 1/2 as loud as 1.0."),
-          volume_values, volume);
+          volume_values, settings.volume);
   AddEnum(_("outputMode"),
           _("The output mode."),
-          output_mode_values, output_mode);
+          output_mode_values, settings.outputMode);
 }
 
 void
@@ -211,16 +216,15 @@ bool
 BlueFlyVarioDialog::Save(bool &_changed)
 {
   bool changed = false;
-  unsigned value;
 
   MyLog("Save()");
 
-  MyLog("vol:" + std::to_string(volume));
-  if (SaveValueEnum(Volume, value)) {
-    SendCommand("BVL", value);
+  MyLog("vol:" + std::to_string(settings.volume));
+  if (SaveValueEnum(Volume, settings.volume)) {
+    SendCommand("BVL", settings.volume);
     changed = true;
   }
-  MyLog("vol:" + std::to_string(value));
+  MyLog("vol:" + std::to_string(settings.volume));
 
   _changed |= changed;
 
