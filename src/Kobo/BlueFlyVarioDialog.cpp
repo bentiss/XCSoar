@@ -36,6 +36,9 @@ Copyright_License {
 #include "Operation/ConsoleOperationEnvironment.hpp"
 #include "IO/Async/GlobalIOThread.hpp"
 #include "IO/DataHandler.hpp"
+#include "Thread/Trigger.hpp"
+#include <vector>
+#include <sstream>
 
 static constexpr StaticEnumChoice volume_values[] = {
   { 0, N_("0 - Muted"), NULL },
@@ -64,6 +67,11 @@ struct BlueFlyVarioSettings {
   unsigned outputMode;
 };
 
+static char settings_version[512] = "";
+static char settings_keys[512] = "";
+static char settings_values[512] = "";
+static Trigger triggerSettings;
+
 static void
 MyLog(std::string data)
 {
@@ -75,6 +83,18 @@ MyLog(const char *data)
 {
   std::string sdata = data;
   MyLog(sdata);
+}
+
+static bool
+line_startswith(const char *line, const char *prefix)
+{
+  unsigned line_length = strlen(line);
+  unsigned prefix_length = strlen(prefix);
+
+  if (prefix_length > line_length)
+    return false;
+
+  return !strncmp(line, prefix, prefix_length);
 }
 
 class MyHandler final : public DataHandler {
@@ -103,7 +123,24 @@ private:
     if (line[0] == '$')
       return;
 
-    printf("%s\n", line);
+    if (line_startswith(line, "BFV ")) {
+      strcpy(settings_version, line);
+      return;
+    }
+
+    if (line_startswith(line, "BST ")) {
+      strcpy(settings_keys, line);
+      return;
+    }
+
+    if (line_startswith(line, "SET ")) {
+      strcpy(settings_values, line);
+      if (line_startswith(settings_keys, "BST "))
+        /* trigger only if we already read the keys */
+        triggerSettings.Signal();
+      return;
+    }
+
   }
 };
 
@@ -122,7 +159,14 @@ public:
       return;
     }
 
-    connected = true;
+    connected = ReadCurrentConfig();
+
+    if (!connected) {
+      MyLog("Unable to read parameters, is the BlueFlyVario connected?");
+      ShowMessageBox(_T("Unable to read parameters, "
+                        "is the BlueFlyVario connected?"), _("Error"),
+                    MB_OK);
+    }
   }
   ~BlueFlyVarioDialog() {
     if (port) {
@@ -139,7 +183,10 @@ private:
                        const PixelRect &rc) override;
   virtual bool Save(bool &changed) override;
 
-
+  bool ReadCurrentConfig();
+  void ParseCurrentVersion(const char *line);
+  void ParseCurrentKeys(const char *line);
+  bool ParseCurrentValues(const char *line);
   void OpenSerial(const TCHAR *path, unsigned baud_rate);
   void SendCommand(const char *cmd, int value);
 
@@ -147,7 +194,80 @@ private:
   Port *port = nullptr;
   bool connected = false;
   struct BlueFlyVarioSettings settings;
+  std::vector<std::string> keys;
 };
+
+bool
+BlueFlyVarioDialog::ReadCurrentConfig()
+{
+  unsigned retry = 3;
+  triggerSettings.Reset();
+  while (retry--) {
+    port->Write("$BST*");
+    if (triggerSettings.Wait(500)) {
+      ParseCurrentVersion(settings_version);
+      ParseCurrentKeys(settings_keys);
+      return ParseCurrentValues(settings_values);
+    }
+  }
+  return false;
+}
+
+void
+BlueFlyVarioDialog::ParseCurrentVersion(const char *line)
+{
+  if (!line_startswith(line, "BFV "))
+    return;
+
+  settings.version = atoi(&line[4]);
+  MyLog("BlueFlyVario connected, version " + std::to_string(settings.version));
+}
+
+void
+BlueFlyVarioDialog::ParseCurrentKeys(const char *line)
+{
+  if (!line_startswith(line, "BST "))
+    return;
+
+  std::istringstream ss(line);
+  std::string token;
+
+  while(std::getline(ss, token, ' '))
+    keys.push_back(token);
+}
+
+bool
+BlueFlyVarioDialog::ParseCurrentValues(const char *line)
+{
+  if (!line_startswith(line, "SET "))
+    return false;
+
+  std::vector<std::string> tokens;
+  std::istringstream ss(line);
+  std::string token;
+
+  while(std::getline(ss, token, ' '))
+    tokens.push_back(token);
+
+  if (keys.size() != tokens.size() - 1)
+    return false;
+
+  MyLog(line);
+  for (unsigned  i = 1; i < keys.size(); i++) {
+    int value = std::stoi(tokens[i + 1]);
+    MyLog(keys[i] + " -> " + tokens[i + 1]);
+    if (keys[i] == "BVL") {
+      settings.volume = value;
+      continue;
+    }
+    if (keys[i] == "BOM") {
+      settings.outputMode = value;
+      continue;
+    }
+  }
+
+  return true;
+}
 
 void
 BlueFlyVarioDialog::Prepare(ContainerWindow &parent, const PixelRect &rc)
