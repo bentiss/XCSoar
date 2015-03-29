@@ -27,6 +27,8 @@ Copyright_License {
 #include "Device/Driver.hpp"
 #include "Math/KalmanFilter1d.hpp"
 #include "NMEA/Info.hpp"
+#include "Thread/Mutex.hpp"
+#include "Thread/Trigger.hpp"
 
 class BlueFlyDevice : public AbstractDevice {
 public:
@@ -44,6 +46,8 @@ public:
   };
 
 private:
+  Port &port;
+  Trigger trigger_settings_ready;
   struct BlueFlySettings settings;
   char *settings_keys;
 
@@ -56,9 +60,44 @@ private:
   bool ParseSET(const char *content, NMEAInfo &info);
   void ParseSetting(const char *name, unsigned long value);
 
+  bool WriteDeviceSetting(const char *name, int value, OperationEnvironment &env);
+
+  Mutex mutex_settings;
+
 public:
-  BlueFlyDevice();
+  BlueFlyDevice(Port &_port);
   ~BlueFlyDevice();
+
+  /**
+   * Request the current settings configuration from the BlueFly Vario.
+   * The BlueFly Vario will send the values, but this method will not
+   * wait for that.
+   *
+   * @return true if sending the command has succeeded (it does not
+   * indicate whether the BlueFly Vario has understood and processed it)
+   */
+  bool RequestSettings(OperationEnvironment &env);
+
+  /**
+   * Wait for the BlueFly Vario to send its settings.
+   * @timeout the timeout in milliseconds.
+   *
+   * @return true if the settings were received, false if a timeout occured.
+   */
+  bool WaitForSettings(unsigned int timeout);
+
+  /**
+   * Copy the available settings to the caller.
+   */
+  void GetSettings(struct BlueFlySettings *settings);
+
+  /**
+   * Write settings to the BlueFly Vario.
+   *
+   * The BlueFly Vario does not indicate whether it has understood and
+   * processed it.
+   */
+  void WriteDeviceSettings(struct BlueFlySettings *settings, OperationEnvironment &env);
 
   virtual void LinkTimeout() override;
   virtual bool ParseNMEA(const char *line, struct NMEAInfo &info) override;
