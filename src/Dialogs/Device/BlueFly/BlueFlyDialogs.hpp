@@ -21,19 +21,12 @@ Copyright_License {
 }
 */
 
-#include "Device/Driver/BlueFlyVario.hpp"
-#include "Internal.hpp"
+#ifndef XCSOAR_DIALOGS_BLUEFLY_HPP
+#define XCSOAR_DIALOGS_BLUEFLY_HPP
 
-static Device *
-BlueFlyCreateOnPort(const DeviceConfig &config, Port &com_port)
-{
-  return new BlueFlyDevice(com_port);
-}
+class Device;
 
-const struct DeviceRegister bluefly_driver = {
-  _T("BlueFly"),
-  _T("BlueFly Vario"),
-  DeviceRegister::MANAGE |
-  DeviceRegister::RECEIVE_SETTINGS | DeviceRegister::SEND_SETTINGS,
-  BlueFlyCreateOnPort,
-};
+bool
+dlgConfigurationBlueFlyVarioShowModal(Device &device);
+
+#endif
