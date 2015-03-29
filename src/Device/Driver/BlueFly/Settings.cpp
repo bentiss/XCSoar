@@ -23,6 +23,7 @@ Copyright_License {
 
 #include "Internal.hpp"
 #include "Device/Util/NMEAWriter.hpp"
+#include "LogFile.hpp"
 #include "NMEA/Derived.hpp"
 
 #include <stdio.h>
@@ -39,6 +40,7 @@ BlueFlyDevice::WriteDeviceSetting(const char *name, int value, OperationEnvironm
   assert(strlen(name) == 3);
 
   sprintf(buffer, "%s %d", name, value);
+  LogFormat("BlueFLy: sending: '$%s'", buffer);
   return PortWriteNMEA(port, buffer, env);
 }
 

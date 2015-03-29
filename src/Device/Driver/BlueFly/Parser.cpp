@@ -24,6 +24,7 @@ Copyright_License {
 #include "Device/Driver/BlueFlyVario.hpp"
 #include "Util/StringUtil.hpp"
 #include "Internal.hpp"
+#include "LogFile.hpp"
 
 bool
 BlueFlyDevice::ParseBAT(const char *content, NMEAInfo &info)
@@ -185,6 +186,9 @@ BlueFlyDevice::ParseSET(const char *content, NMEAInfo &info)
     token = StringToken(nullptr, " ");
   }
   mutex_settings.Unlock();
+
+  LogFormat("BlueFLy: Volume: %02f", settings.volume);
+  LogFormat("BlueFLy: OutputMode: %d", settings.output_mode);
 
   trigger_settings_ready.Signal();
 
