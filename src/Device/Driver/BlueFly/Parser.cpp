@@ -22,6 +22,7 @@ Copyright_License {
 */
 
 #include "Device/Driver/BlueFlyVario.hpp"
+#include "Util/StringUtil.hpp"
 #include "Internal.hpp"
 
 bool
@@ -88,6 +89,104 @@ BlueFlyDevice::ParsePRS(const char *content, NMEAInfo &info)
   return true;
 }
 
+static bool
+getULong(const char **line, unsigned long &value)
+{
+  char *endptr;
+
+  errno = 0;
+  value = strtoul(*line, &endptr, 10);
+
+  if ((errno == ERANGE && value == LONG_MAX) ||
+      (errno != 0 && value == 0) ||
+      endptr == *line)
+    return false;
+
+  *line = endptr;
+
+  return true;
+}
+
+/**
+ * Parse the BlueFly Vario version.
+ * Sent Upon a BST request.
+ */
+bool
+BlueFlyDevice::ParseBFV(const char *content, NMEAInfo &info)
+{
+  // e.g. BFV 9
+
+  unsigned long value;
+
+  if (getULong(&content, value)) {
+    assert(value <= UINT_MAX);
+    settings.version = value;
+  }
+
+  return true;
+}
+
+/**
+ * Parse the BlueFly Vario parameter list.
+ * Sent Upon a BST request.
+ */
+bool
+BlueFlyDevice::ParseBST(const char *content, NMEAInfo &info)
+{
+  // e.g. BST BFK BFL BFP BAC BAD BTH BFQ BFI BSQ BSI BFS BOL BOS BRM BVL BOM BOF BQH BRB BPT BUR BLD BR2
+
+  free(settings_keys);
+
+  settings_keys = strdup(content);
+
+  return true;
+}
+
+/**
+ * Parse the given BlueFly Vario setting identified by its name.
+ */
+void
+BlueFlyDevice::ParseSetting(const char *name, unsigned long value)
+{
+  assert(value <= UINT_MAX);
+
+  if (memcmp(name, settings.VOLUME_NAME, 3) == 0)
+    settings.volume = (fixed)value / settings.VOLUME_MULTIPLIER;
+  else if (memcmp(name, settings.OUTPUT_MODE_NAME, 3) == 0)
+    settings.output_mode = value;
+}
+
+/**
+ * Parse the BlueFly Vario parameter values.
+ * Sent Upon a BST request.
+ */
+bool
+BlueFlyDevice::ParseSET(const char *content, NMEAInfo &info)
+{
+  // e.g. SET 0 100 20 1 1 1 180 1000 100 400 100 20 5 5 100 50 0 10 21325 207 1 0 1 34
+
+  const char *values, *token;
+  unsigned long value;
+
+  if (!settings.version || !settings_keys)
+    /* we did not receive the previous BFV and BST, abort */
+    return true;
+
+  token = StringToken(settings_keys, " ");
+  values = content;
+
+  /* the first value should be ignored */
+  if (!getULong(&values, value))
+    return true;
+
+  while (token && getULong(&values, value)) {
+    ParseSetting(token, value);
+    token = StringToken(nullptr, " ");
+  }
+
+  return true;
+}
+
 bool
 BlueFlyDevice::ParseNMEA(const char *line, NMEAInfo &info)
 {
@@ -95,6 +194,12 @@ BlueFlyDevice::ParseNMEA(const char *line, NMEAInfo &info)
     return ParsePRS(line + 4, info);
   else if (memcmp(line, "BAT ", 4) == 0)
     return ParseBAT(line + 4, info);
+  else if (memcmp(line, "BFV ", 4) == 0)
+    return ParseBFV(line + 4, info);
+  else if (memcmp(line, "BST ", 4) == 0)
+    return ParseBST(line + 4, info);
+  else if (memcmp(line, "SET ", 4) == 0)
+    return ParseSET(line + 4, info);
   else
     return false;
 }
