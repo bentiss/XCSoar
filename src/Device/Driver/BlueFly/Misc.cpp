@@ -31,6 +31,13 @@ BlueFlyDevice::LinkTimeout()
 }
 
 BlueFlyDevice::BlueFlyDevice()
+    :settings({0}),
+     settings_keys(nullptr)
 {
   kalman_filter.SetAccelerationVariance(fixed(0.3));
+}
+
+BlueFlyDevice::~BlueFlyDevice()
+{
+  free(settings_keys);
 }
